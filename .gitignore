@@ -1,0 +1,34 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Databases
+*.db
+*.sqlite3
+
+# Python
+backend/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next
+node_modules/
+frontend/.next/
+frontend/out/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Generated
+graphify-out/
+
+# Private docs
+Obaidi_Time_Pricing_Report.md
+Brand_Obaidi_Time.md
+0[1-5]_*.md
