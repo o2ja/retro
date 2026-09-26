@@ -18,7 +18,25 @@ import type {
   SocialLink,
 } from "./types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL;
+  }
+  if (typeof window !== "undefined") {
+    // In production browser: use relative URL so it routes through Vercel rewrites on the same domain.
+    // In local development browser without NEXT_PUBLIC_API_BASE_URL, default to localhost:8000.
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:8000";
+    }
+    return "";
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:8000";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 /** The backend's error envelope: { error: { code, message, details? } }. */
 export class ApiError extends Error {

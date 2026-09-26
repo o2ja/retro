@@ -25,8 +25,7 @@ import type {
   SiteSettings,
   SocialLink,
 } from "./admin-types";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+import { getApiBaseUrl } from "./api";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -34,7 +33,8 @@ export async function adminRequest<T>(
   path: string,
   { method = "GET", body }: { method?: Method; body?: unknown } = {},
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,

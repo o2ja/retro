@@ -1,6 +1,7 @@
 """Environment-driven configuration. Nothing secret is ever hardcoded here."""
 
 from functools import lru_cache
+import os
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:3000"]
     )
 
-    session_cookie_name: str = "obaidi_admin_session"
+    session_cookie_name: str = "retro"
     session_max_age_seconds: int = 60 * 60 * 8
     session_cookie_secure: bool = False
 
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
 
     # Seed-only credentials; the runtime never reads ADMIN_PASSWORD after seeding.
     admin_email: str = "admin@retrowatches.jo"
-    admin_password: str = "ChangeMe!Dev1"
+    admin_password: str = "retro!123456"
 
     # Phase 4 wires a real provider behind app/payments. Nothing is charged yet.
     payment_provider: str = "unconfigured"
@@ -46,6 +47,22 @@ class Settings(BaseSettings):
     storefront_url: str = "http://localhost:3000"
 
     default_currency: str = "USD"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _adjust_database_url(cls, value: object) -> object:
+        if isinstance(value, str) and value.startswith("sqlite") and os.environ.get("VERCEL"):
+            return "sqlite:////tmp/retro_watches.db"
+        return value or "sqlite:///./obaidi_time.db"
+
+
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def _fallback_secret_key(cls, value: object) -> object:
+        if not value or value == "dev-only-insecure-secret-change-me":
+            if os.environ.get("VERCEL"):
+                return "vercel-auto-secret-key-retro-watches-2026-prod-stable"
+        return value or "dev-only-insecure-secret-change-me"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

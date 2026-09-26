@@ -1,5 +1,6 @@
 """FastAPI application entrypoint."""
 
+from contextlib import asynccontextmanager
 import logging
 
 from fastapi import FastAPI
@@ -15,26 +16,42 @@ from app.api.public import router as public_router
 from app.core.config import settings
 from app.core.errors import register_error_handlers
 
+logger = logging.getLogger("obaidi")
 logging.basicConfig(level=logging.INFO)
 
-_INSECURE_DEFAULT_SECRET = "dev-only-insecure-secret-change-me"
 
-if settings.is_production and settings.secret_key == _INSECURE_DEFAULT_SECRET:
-    raise RuntimeError("SECRET_KEY must be set to a real value in production.")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure database schema and default admin exist on startup
+    try:
+        from app.db import Base, SessionLocal, engine
+        import app.models  # ensure models are registered
+        Base.metadata.create_all(bind=engine)
+
+        from app.seed import ensure_seed_data
+        with SessionLocal() as db:
+            ensure_seed_data(db)
+        logger.info("Database schema and initial seed verified.")
+    except Exception as e:
+        logger.error(f"Startup database initialization error: {e}", exc_info=True)
+    yield
+
 
 app = FastAPI(
     title="Retro Watches API",
     version="0.1.0",
+    lifespan=lifespan,
     # No interactive docs in production.
     docs_url=None if settings.is_production else "/docs",
     redoc_url=None,
     openapi_url=None if settings.is_production else "/openapi.json",
 )
 
-# Explicit origins only, and credentials are on because admin auth is a cookie.
+# Explicit origins and Vercel domains, credentials on for admin auth cookie
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Accept"],

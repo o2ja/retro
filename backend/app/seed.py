@@ -360,7 +360,9 @@ def _upsert_admin(db: Session) -> None:
         )
         print(f"  admin created: {email}")
     else:
-        print(f"  admin already exists: {email}")
+        admin.password_hash = hash_password(settings.admin_password)
+        admin.is_active = True
+        print(f"  admin verified/updated: {email}")
 
 
 def _upsert_settings(db: Session) -> None:
@@ -532,9 +534,28 @@ def _upsert_posts(db: Session) -> None:
             post.published_at = utcnow()
 
 
+def ensure_seed_data(db: Session) -> None:
+    """Ensure database has the admin user and basic records if empty."""
+    admin = db.execute(select(AdminUser)).first()
+    if admin is None:
+        _upsert_admin(db)
+        _upsert_settings(db)
+        _upsert_social(db)
+        brands, categories = _upsert_taxonomy(db)
+        _upsert_products(db, brands, categories)
+        _upsert_homepage(db)
+        _upsert_posts(db)
+        db.commit()
+    else:
+        _upsert_admin(db)
+        _upsert_settings(db)
+        _upsert_social(db)
+        db.commit()
+
+
 def run() -> None:
     with SessionLocal() as db:
-        print("Seeding Obaidi Time development data...")
+        print("Seeding Retro Watches development data...")
         _upsert_admin(db)
         _upsert_settings(db)
         _upsert_social(db)
